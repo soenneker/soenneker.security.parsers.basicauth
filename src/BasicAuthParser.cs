@@ -15,13 +15,13 @@ public static class BasicAuthParser
     // Optional sanity cap to avoid giant headers (8KB of Base64 ~ 6KB bytes)
     private const int _maxBase64Chars = 8 * 1024;
 
-    public static bool TryReadBasicCredentials(HttpContext ctx, out ReadOnlySpan<char> username, out ReadOnlySpan<char> password, out char[]? charBufferToClear)
+    public static bool TryReadBasicCredentials(HttpContext context, out ReadOnlySpan<char> username, out ReadOnlySpan<char> password, out char[]? charBufferToClear)
     {
         username = default;
         password = default;
         charBufferToClear = null;
 
-        if (!ctx.Request.Headers.TryGetValue("Authorization", out StringValues auth) || auth.Count == 0)
+        if (!context.Request.Headers.TryGetValue("Authorization", out StringValues auth) || auth.Count == 0)
             return false;
 
         string? value = auth[0];
@@ -35,7 +35,7 @@ public static class BasicAuthParser
             return false;
 
         // Base64 -> bytes (pooled)
-        int maxBytes = (b64.Length * 3) / 4 + 3;
+        int maxBytes = b64.Length * 3 / 4 + 3;
         byte[]? bytes = ArrayPool<byte>.Shared.Rent(maxBytes);
         var bytesWritten = 0;
 
