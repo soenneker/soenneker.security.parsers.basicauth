@@ -16,7 +16,7 @@
         <AssemblyName>Soenneker.Security.Parsers.BasicAuth</AssemblyName>
         <PackageId>Soenneker.Security.Parsers.BasicAuth</PackageId>
         <PackageTags>security parsers basicauth basic auth authorization parser header headers basicauthparser util csharp dotnet c# .net</PackageTags>
-        <Copyright>Copyright © 2025 Jake Soenneker</Copyright>
+        <Copyright>Copyright © 2025-2026 Jake Soenneker</Copyright>
         <Authors>Jake Soenneker</Authors>
         <Company>https://soenneker.com</Company>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
