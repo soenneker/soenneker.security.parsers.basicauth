@@ -8,7 +8,7 @@ using Microsoft.Extensions.Primitives;
 namespace Soenneker.Security.Parsers.BasicAuth;
 
 /// <summary>
-/// A library for basic authorization parsing
+/// Parses HTTP Basic credentials into spans backed by a caller-released pooled buffer.
 /// </summary>
 public static class BasicAuthParser
 {
@@ -21,7 +21,7 @@ public static class BasicAuthParser
     /// <param name="context">HTTP context containing the Authorization header.</param>
     /// <param name="username">Receives the decoded username when parsing succeeds.</param>
     /// <param name="password">Receives the decoded password when parsing succeeds.</param>
-    /// <param name="charBufferToClear">Receives the rented character buffer that the caller must clear and return.</param>
+    /// <param name="charBufferToClear">Receives the rented character buffer on success. Pass it to <see cref="Clear"/> exactly once after using the spans.</param>
     /// <returns>true if valid Basic credentials were decoded and assigned; otherwise, false.</returns>
     public static bool TryReadBasicCredentials(HttpContext context, out ReadOnlySpan<char> username, out ReadOnlySpan<char> password, out char[]? charBufferToClear)
     {
@@ -34,7 +34,7 @@ public static class BasicAuthParser
 
         string? value = auth[0];
 
-        if (!value.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        if (value is null || !value.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
             return false;
 
         ReadOnlySpan<char> b64 = value.AsSpan(6).Trim();
@@ -46,6 +46,7 @@ public static class BasicAuthParser
         int maxBytes = b64.Length * 3 / 4 + 3;
         byte[]? bytes = ArrayPool<byte>.Shared.Rent(maxBytes);
         var bytesWritten = 0;
+        char[]? rentedChars = null;
 
         try
         {
@@ -54,29 +55,37 @@ public static class BasicAuthParser
 
             // UTF8 -> chars (pooled)
             int maxChars = Encoding.UTF8.GetMaxCharCount(bytesWritten);
-            charBufferToClear = ArrayPool<char>.Shared.Rent(maxChars);
-            int charsWritten = Encoding.UTF8.GetChars(bytes, 0, bytesWritten, charBufferToClear, 0);
+            rentedChars = ArrayPool<char>.Shared.Rent(maxChars);
+            int charsWritten = Encoding.UTF8.GetChars(bytes, 0, bytesWritten, rentedChars, 0);
 
-            Span<char> span = charBufferToClear.AsSpan(0, charsWritten);
+            Span<char> span = rentedChars.AsSpan(0, charsWritten);
             int colon = span.IndexOf(':');
             if (colon <= 0 || colon == span.Length - 1)
                 return false;
 
             username = span.Slice(0, colon);
             password = span.Slice(colon + 1);
+            charBufferToClear = rentedChars;
+            rentedChars = null;
             return true;
         }
         finally
         {
+            if (rentedChars is not null)
+            {
+                Array.Clear(rentedChars, 0, rentedChars.Length);
+                ArrayPool<char>.Shared.Return(rentedChars);
+            }
+
             CryptographicOperations.ZeroMemory(bytes.AsSpan(0, bytesWritten));
             ArrayPool<byte>.Shared.Return(bytes);
         }
     }
 
     /// <summary>
-    /// Removes all entries managed by the Basic Auth Parser.
+    /// Zeros and returns a character buffer received from <see cref="TryReadBasicCredentials"/>.
     /// </summary>
-    /// <param name="charBuffer">char Buffer to process.</param>
+    /// <param name="charBuffer">The rented buffer to clear and return, or <see langword="null"/>.</param>
     public static void Clear(char[]? charBuffer)
     {
         if (charBuffer is null) 
