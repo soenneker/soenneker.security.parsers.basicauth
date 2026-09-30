@@ -13,7 +13,7 @@ public sealed class BasicAuthParserTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Valid_credentials_are_returned_and_can_be_cleared()
+    public async ValueTask Valid_credentials_are_returned_and_can_be_cleared()
     {
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = "Basic dXNlcjpwYXNzd29yZA==";
@@ -38,7 +38,7 @@ public sealed class BasicAuthParserTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Invalid_decoded_credentials_do_not_transfer_a_buffer()
+    public async ValueTask Invalid_decoded_credentials_do_not_transfer_a_buffer()
     {
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = "Basic bm8tY29sb24=";
