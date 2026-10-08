@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Soenneker.Tests.HostedUnit;
+using System.Threading;
 
 namespace Soenneker.Security.Parsers.BasicAuth.Tests;
 
@@ -13,7 +14,7 @@ public sealed class BasicAuthParserTests : HostedUnitTest
     }
 
     [Test]
-    public async ValueTask Valid_credentials_are_returned_and_can_be_cleared()
+    public async ValueTask Valid_credentials_are_returned_and_can_be_cleared(CancellationToken cancellationToken)
     {
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = "Basic dXNlcjpwYXNzd29yZA==";
@@ -38,7 +39,7 @@ public sealed class BasicAuthParserTests : HostedUnitTest
     }
 
     [Test]
-    public async ValueTask Invalid_decoded_credentials_do_not_transfer_a_buffer()
+    public async ValueTask Invalid_decoded_credentials_do_not_transfer_a_buffer(CancellationToken cancellationToken)
     {
         var context = new DefaultHttpContext();
         context.Request.Headers.Authorization = "Basic bm8tY29sb24=";
